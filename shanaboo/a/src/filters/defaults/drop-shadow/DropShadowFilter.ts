@@ -1,66 +1,57 @@
-import { Filter } from '../../../Filter';
-import { BlurFilterPass } from '../blur/BlurFilterPass';
+import { Filter } from '@pixi/core';
 import { settings } from '@pixi/settings';
-import { isWebGLSupported } from '@pixi/utils';
-
+import { isMobile } from '@pixi/utils';
+import { vertex } from '../default-vertex';
+import { KawaseBlurFilter } from '../blur/KawaseBlurFilter';
 import fragment from './drop-shadow.frag';
-import vertex from './drop-shadow.vert';
-    rotation: number;
-    shadowColor: number;
-    alpha: number;
-    quality: number;
-}
+    rotation?: number;
+    distance?: number;
+    blur?: number;
+    quality?: number;
+    color?: number;
+    alpha?: number;
+    shadowOnly?: boolean;
+ * @param {number} [options.rotation=2] - The angle of the shadow in degrees.
+ * @param {number} [options.distance=5] - Distance of shadow
+ * @param {number} [options.blur=2] - Sets the strength of the Blur properties simultaneously
+ * @param {number} [options.quality=3] - The quality of the shadow. Should be an integer between 1 and 5
+ * @param {number} [options.color=0x000000] - The color of the shadow.
+ * @param {number} [options.alpha=0.5] - The alpha of the shadow.
+ * @param {boolean} [options.shadowOnly=false] - Whether render shadow only.
+        rotation: 2,
+        distance: 5,
+        blur: 2,
+        quality: 3,
+        color: 0x000000,
+        alpha: 0.5,
+        shadowOnly: false,
+    public _distance: number;
+    public _angle: number;
+    public _blur: number;
+    public _quality: number;
+    public _tintFilter: Filter;
+    public _blurFilter: KawaseBlurFilter;
 
-/**
- * @param {number} [options.rotation=45] - Angle of the shadow in degrees
- * @param {number} [options.shadowColor=0x000000] - Color of the shadow
- * @param {number} [options.alpha=0.5] - Alpha of the shadow
- * @param {number} [options.quality=0.5] - Quality of the shadow blur (0.1-1.0)
- */
-export class DropShadowFilter extends Filter
-{
-    public blurFilter: BlurFilterPass;
+        this._distance = options.distance;
+        this._angle = options.rotation * (Math.PI / 180);
+        this._blur = options.blur;
+        this._quality = Math.max(1, Math.min(5, options.quality));
 
-    private _distance: number;
-    private _quality: number;
+        this._tintFilter = new Filter(vertex, fragment);
+        this._tintFilter.uniforms.uColor = DropShadowFilter.rgb2hex(
+        this._tintFilter.uniforms.uAlpha = options.alpha;
 
-    /**
-     * @param {PIXI.DropShadowFilterOptions} [options] - Options for the DropShadowFilter
-            rotation = 45,
-            shadowColor = 0x000000,
-            alpha = 0.5,
-            quality = 0.5,
-        } = options;
+        this._blurFilter = new KawaseBlurFilter();
+        this._blurFilter.quality = this._quality;
+        this._blurFilter.blur = this._blur;
 
-        super(vertex, fragment);
-        this._distance = distance;
-        this._angle = (rotation * DEG_TO_RAD) - (Math.PI / 180);
-
-        this.blurFilter = new BlurFilterPass(distance, 2, quality, 0);
-
-        this.uniforms.uShadowColor = new Float32Array([
-            ((shadowColor >> 16) & 0xFF) / 255,
-        ]);
-        this.uniforms.uAlpha = alpha;
-        this.uniforms.uOffset = new Float32Array([0, 0]);
-        this._quality = quality;
-
-        this.updatePadding();
-    }
-    {
-        this.uniforms.uOffset[0] = Math.cos(this._angle) * this._distance;
-        this.uniforms.uOffset[1] = Math.sin(this._angle) * this._distance;
-        this.blurFilter.quality = this._quality;
+        this._updatePadding();
+        this._updatePadding();
     }
 
     /**
-    {
-        this.uniforms.uAlpha = value;
-    }
-
-    /**
-     * The quality of the shadow blur.
-     * @default 0.5
+     * The quality of the shadow.
+     * @default 3
      */
     get quality(): number
     {
@@ -68,13 +59,62 @@ export class DropShadowFilter extends Filter
     }
     set quality(value: number)
     {
-        const clampedValue = Math.max(0.1, Math.min(1.0, value));
-        
-        if (this._quality !== clampedValue)
+        const newQuality = Math.max(1, Math.min(5, value));
+
+        if (this._quality !== newQuality)
         {
-            this._quality = clampedValue;
-            this.blurFilter.quality = clampedValue;
-            this.updatePadding();
+            this._quality = newQuality;
+
+            // On mobile devices, cap quality to 2 to improve performance
+            const cappedQuality = isMobile.any ? Math.min(newQuality, 2) : newQuality;
+
+            this._blurFilter.quality = cappedQuality;
         }
     }
-}
+
+    /**
+     * Sets the strength of the Blur properties simultaneously
+     *
+    get blur(): number
+    {
+        return this._blur;
+    } 
+    set blur(value: number)
+    {
+        this._blur = value;
+        this._updatePadding();
+    }
+
+
+    /**
+     * The alpha value of the shadow
+     *
+        this._updatePadding();
+    }
+
+
+    /**
+     * The distance of the shadow
+     * @default 5
+        this._updatePadding();
+    }
+
+
+    /**
+     * The angle of the shadow in degrees
+     * @default 2
+        this._updatePadding();
+    }
+
+
+    apply(filterManager, input, output, clear, currentState)
+    {
+        const target = filterManager.getFilterTexture();
+        this.uniforms.uOffset.x = this._distance * Math.cos(this._angle);
+        this.uniforms.uOffset.y = this._distance * Math.sin(this._angle);
+
+        // Ensure quality is capped on mobile devices
+        this._blurFilter.quality = isMobile.any ? Math.min(this._quality, 2) : this._quality;
+
+        // Apply shadow
+        this._tintFilter.apply(filterManager, input, target, true, currentState);
