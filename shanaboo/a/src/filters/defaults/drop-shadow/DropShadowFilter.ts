@@ -1,57 +1,96 @@
-import { Filter } from '@pixi/core';
-import { settings } from '@pixi/settings';
 import { isMobile } from '@pixi/utils';
-import { vertex } from '../default-vertex';
-import { KawaseBlurFilter } from '../blur/KawaseBlurFilter';
+import { Filter } from '@pixi/core';
+import { BlurFilter } from '../blur/BlurFilter';
+import { ColorMatrixFilter } from '../color/ColorMatrixFilter';
+import { settings } from '@pixi/settings';
+import { DEG_TO_RAD } from '@pixi/math';
 import fragment from './drop-shadow.frag';
+import vertex from './drop-shadow.vert';
+
+import type { FilterSystem, RenderTexture } from '@pixi/core';
+import type { Point } from '@pixi/math';
+{
     rotation?: number;
     distance?: number;
-    blur?: number;
+    /**
+     * The quality of the shadow. Lower values improve performance.
+     * @default 0.5
+     */
     quality?: number;
+    blur?: number;
     color?: number;
     alpha?: number;
-    shadowOnly?: boolean;
- * @param {number} [options.rotation=2] - The angle of the shadow in degrees.
- * @param {number} [options.distance=5] - Distance of shadow
- * @param {number} [options.blur=2] - Sets the strength of the Blur properties simultaneously
- * @param {number} [options.quality=3] - The quality of the shadow. Should be an integer between 1 and 5
- * @param {number} [options.color=0x000000] - The color of the shadow.
- * @param {number} [options.alpha=0.5] - The alpha of the shadow.
- * @param {boolean} [options.shadowOnly=false] - Whether render shadow only.
-        rotation: 2,
+{
+    public static readonly defaults: DropShadowFilterOptions = {
+        rotation: 45,
+        quality: 0.5,
         distance: 5,
         blur: 2,
-        quality: 3,
         color: 0x000000,
-        alpha: 0.5,
-        shadowOnly: false,
-    public _distance: number;
-    public _angle: number;
-    public _blur: number;
-    public _quality: number;
-    public _tintFilter: Filter;
-    public _blurFilter: KawaseBlurFilter;
+        kernels: null,
+    };
 
-        this._distance = options.distance;
-        this._angle = options.rotation * (Math.PI / 180);
-        this._blur = options.blur;
-        this._quality = Math.max(1, Math.min(5, options.quality));
+    private _quality: number;
+    private _blurFilter: BlurFilter;
+    private _colorMatrixFilter: ColorMatrixFilter;
+    private _distance: number;
+    private _tintFilter: Filter;
 
-        this._tintFilter = new Filter(vertex, fragment);
-        this._tintFilter.uniforms.uColor = DropShadowFilter.rgb2hex(
-        this._tintFilter.uniforms.uAlpha = options.alpha;
+    constructor(options?: DropShadowFilterOptions);
+    /** @deprecated since 7.0.0 */
+    constructor(rotation?: number, distance?: number, blur?: number, color?: number, alpha?: number);
+    constructor(...args: any[])
+    {
+        options = { ...DropShadowFilter.defaults, ...options };
 
-        this._blurFilter = new KawaseBlurFilter();
-        this._blurFilter.quality = this._quality;
-        this._blurFilter.blur = this._blur;
+        super(vertex, fragment);
+        this._quality = options.quality ?? this._getDefaultQuality();
 
-        this._updatePadding();
-        this._updatePadding();
+        this._blurFilter = new BlurFilter(options.blur ?? DropShadowFilter.defaults.blur, options.quality ?? 4, options.resolution);
+        this._colorMatrixFilter = new ColorMatrixFilter();
+        this.alpha = options.alpha ?? DropShadowFilter.defaults.alpha;
+    }
+
+    private _getDefaultQuality(): number
+    {
+        // Reduce quality on mobile devices, especially Apple devices
+        const isAppleDevice = /(Mac|iPhone|iPad|iPod)/.test(navigator.platform);
+        
+        if (isAppleDevice || isMobile.apple.device || isMobile.tablet || isMobile.phone) {
+            return 0.3; // Lower quality for better performance
+        }
+        
+        return 0.5; // Default quality
     }
 
     /**
-     * The quality of the shadow.
-     * @default 3
+     * Applies the filter.
+     * @param filterManager - The renderer to retrieve the filter from.
+     */
+    apply(filterManager: FilterSystem, input: RenderTexture, output: RenderTexture, clear: boolean): void
+    {
+        // Skip rendering if quality is too low to be visible
+        if (this._quality < 0.1) {
+            return;
+        }
+
+        const target = filterManager.getFilterTexture();
+
+        // Apply shadow offset
+        this._tintFilter.apply(filterManager, input, target, true);
+
+        // Apply blur to the shadow
+        this._blurFilter.quality = Math.max(1, Math.floor(this._quality * 4));
+        this._blurFilter.apply(filterManager, target, target, false);
+
+        // Apply color to the shadow
+        this._colorMatrixFilter.apply(filterManager, target, target, false);
+        filterManager.returnFilterTexture(target);
+    }
+
+    /**
+     * The quality of the shadow. Lower values improve performance.
+     * @default 0.5
      */
     get quality(): number
     {
@@ -59,62 +98,13 @@ import fragment from './drop-shadow.frag';
     }
     set quality(value: number)
     {
-        const newQuality = Math.max(1, Math.min(5, value));
-
-        if (this._quality !== newQuality)
+        const quality = Math.max(0.1, Math.min(1, value));
+        if (this._quality !== quality)
         {
-            this._quality = newQuality;
-
-            // On mobile devices, cap quality to 2 to improve performance
-            const cappedQuality = isMobile.any ? Math.min(newQuality, 2) : newQuality;
-
-            this._blurFilter.quality = cappedQuality;
+            this._quality = quality;
         }
     }
 
     /**
-     * Sets the strength of the Blur properties simultaneously
-     *
-    get blur(): number
-    {
-        return this._blur;
-    } 
-    set blur(value: number)
-    {
-        this._blur = value;
-        this._updatePadding();
-    }
-
-
-    /**
-     * The alpha value of the shadow
-     *
-        this._updatePadding();
-    }
-
-
-    /**
-     * The distance of the shadow
-     * @default 5
-        this._updatePadding();
-    }
-
-
-    /**
-     * The angle of the shadow in degrees
-     * @default 2
-        this._updatePadding();
-    }
-
-
-    apply(filterManager, input, output, clear, currentState)
-    {
-        const target = filterManager.getFilterTexture();
-        this.uniforms.uOffset.x = this._distance * Math.cos(this._angle);
-        this.uniforms.uOffset.y = this._distance * Math.sin(this._angle);
-
-        // Ensure quality is capped on mobile devices
-        this._blurFilter.quality = isMobile.any ? Math.min(this._quality, 2) : this._quality;
-
-        // Apply shadow
-        this._tintFilter.apply(filterManager, input, target, true, currentState);
+     * Sets the strength of the blur. Default: 2
+     */
