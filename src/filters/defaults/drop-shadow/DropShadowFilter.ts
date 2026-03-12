@@ -1,216 +1,155 @@
-import { Filter } from '../../../Filter';
+import { Filter } from '../../Filter';
 import { BlurFilterPass } from '../blur/BlurFilterPass';
+import { BlurFilter } from '../blur/BlurFilter';
 import { settings } from '@pixi/settings';
+import { DEG_TO_RAD } from '@pixi/math';
+import fragment from './drop-shadow.frag';
 
-import type { FilterSystem } from '../../../FilterSystem';
-import type { Rectangle } from '@pixi/math';
-
-const vertex = `in vec2 aVertexPosition;
-in vec2 aTextureCoord;
-in vec2 aTextureCoord2;
-
-out vec2 vUv;
-out vec2 vUvFilter;
-uniform vec4 inputSize;
-uniform vec4 outputFrame;
-uniform vec2 scale;
-uniform vec2 offset;
-
-vec4 filterVertexPosition(vec2 pos)
-{
-void main(void)
-{
-    gl_Position = filterVertexPosition(aVertexPosition);
-    vUv = aTextureCoord + offset * inputSize.zw;
-    vUvFilter = filterTextureCoord(aTextureCoord) * scale;
-}`;
-
-in vec2 vUvFilter;
-
-uniform sampler2D uSampler;
-uniform sampler2D uTexture;
-uniform vec4 color;
-uniform float alpha;
-uniform vec2 offset;
-out vec4 fragColor;
-
-void main(void) {
-    vec4 shadow = texture(uSampler, vUvFilter);
-    vec4 source = texture(uTexture, vUv);
-    
-    fragColor = source + shadow * color * alpha;
-}`;
-
-export interface DropShadowFilterOptions
-{
-    /**
-     * The distance of the shadow from the object
-     */
-    distance?: number;
-    /**
-     * The angle of the shadow in degrees
-     */
-    angle?: number;
-    color?: number;
-    alpha?: number;
-    kernels?: number[];
-    pixelSize?: number | number[] | IPointData;
-    resolution?: number;
-    quality?: number;
-}
+import type { FilterSystem } from '../../Filter';
+import type { RenderTexture } from '@pixi/core';
+import type { CLEAR_MODES } from '@pixi/constants';
 
 /**
-    private _angle = 45;
-    private _distance = 5;
-    private _tintFilter: Filter;
-    private _quality: number;
+ * Drop shadow filter.<br>
+ */
+export class DropShadowFilter extends Filter
+{
+    public static override fragment: string = fragment;
+    public static override vertex = vertex;
 
-    /**
-     * @param options
-     */
-    constructor(options?: DropShadowFilterOptions)
-    {
-        const useOptimizedPath = settings.PREFER_ENV === 2; // Check if we're on Apple devices
-        options = { ...DropShadowFilter.DEFAULT_OPTIONS, ...options };
-
-        const { kernels, blur, quality, pixelSize, resolution } = options;
-            vertex,
-            fragment,
-            {
-                offset: { x: 0, y: 0, type: 'vec2' },
-                color: { type: 'vec4', value: { x: 0, y: 0, z: 0, w: 1 } },
-                alpha: { type: 'float', value: 1 },
-                scale: { type: 'vec2', value: { x: 1, y: 1 } },
-        );
-
-        this._tintFilter = new Filter(vertex, fragment, {
-            offset: { x: 0, y: 0, type: 'vec2' },
-            color: { type: 'vec4', value: { x: 0, y: 0, z: 0, w: 1 } },
-            alpha: { type: 'float', value: 1 },
-            scale: { type: 'vec2', value: { x: 1, y: 1 } },
-
-        this._blurFilter = new BlurFilterPass(
-            false,
-            useOptimizedPath ? Math.min(quality, 2) : quality, // Limit quality on Apple devices
-            resolution,
-            kernels,
-            blur,
-        );
-
-        this.resolution = resolution;
-        this._quality = useOptimizedPath ? Math.min(quality, 2) : quality;
-
-        const { distance, angle, color, alpha } = options;
-
-        this.alpha = alpha;
-    }
-
-    /** Default options for the DropShadowFilter */
-    public static readonly DEFAULT_OPTIONS: DropShadowFilterOptions = {
+    /** @ignore */
         distance: 5,
         angle: 45,
-        alpha: 1,
+        color: 0x000000,
+        alpha: 0.5,
+        shadowOnly: false,
         blur: 2,
         quality: 3,
-        resolution: 1,
+        resolution: settings.FILTER_RESOLUTION,
     };
 
+    private _tintFilter: Filter = new Filter(vertex, fragment);
+    private _blurFilter: BlurFilterPass;
+
+    private _distance: number;
+    private _resolution: number;
+    private _quality: number;
+    private _blur: number;
+    private _optimizedBlur: BlurFilter;
+
     /**
-        this._updatePadding();
+     * @param {object} [options] - Filter options
+        options = { ...DropShadowFilter.defaults, ...options };
+
+        super(vertex, fragment);
+
+        this._blurFilter = new BlurFilterPass(options.blur, Math.min(options.quality, 2), options.resolution, 5);
+        this._optimizedBlur = new BlurFilter(options.blur, Math.min(options.quality, 2));
+
+        this._distance = options.distance;
+        this._angle = options.angle;
+        this.alpha = options.alpha;
+        this.shadowOnly = options.shadowOnly;
+
+        this.resolution = Math.min(options.resolution, 1);
     }
 
-    /** The alpha value of the shadow */
-    get alpha(): number
+    /**
+     */
+    apply(filterManager: FilterSystem, input: RenderTexture, output: RenderTexture, clearMode: CLEAR_MODES): void
     {
-        return this.uniforms.alpha;
-        this.uniforms.alpha = value;
+        const { _tintFilter: tintFilter, _blurFilter: blurFilter, _optimizedBlur: optimizedBlur } = this;
+
+        // Unpack the uniforms
+        const angle = this._angle * DEG_TO_RAD;
+        const xShift = Math.cos(angle) * distance;
+        const yShift = Math.sin(angle) * distance;
+
+        // Use optimized blur for better performance on Apple devices
+        const useOptimizedBlur = this.blur > 0 && this.quality > 0;
+        
+        if (useOptimizedBlur) {
+            optimizedBlur.blur = this.blur;
+            optimizedBlur.quality = Math.min(this.quality, 2);
+        } else {
+            blurFilter.blur = this.blur;
+            blurFilter.quality = Math.min(this.quality, 2);
+        }
+
+        // Update the tint filter
+        tintFilter.uniforms.uShadowColor = this._color;
+        tintFilter.uniforms.uAlpha = this.alpha;
+        tintFilter.uniforms.uOffset = { x: xShift, y: yShift };
+        tintFilter.resolution = Math.min(this.resolution, 1);
+
+        // Apply the drop shadow
+        const target = filterManager.getFilterTexture(input);
+
+        if (this.shadowOnly && !useOptimizedBlur)
+        {
+            // Apply the blur to the input
+            blurFilter.apply(filterManager, input, target, 1);
+            // Apply the tint to the blurred output
+            tintFilter.apply(filterManager, target, output, clearMode);
+        }
+        else if (!useOptimizedBlur)
+        {
+            const flip = filterManager.getFilterTexture(input);
+
+            filterManager.returnFilterTexture(flip);
+            filterManager.returnFilterTexture(target);
+        }
+        else
+        {
+            // Optimized path for better performance
+            if (this.shadowOnly)
+            {
+                optimizedBlur.apply(filterManager, input, target, 1);
+                tintFilter.apply(filterManager, target, output, clearMode);
+            }
+            else
+            {
+                const flip = filterManager.getFilterTexture(input);
+                
+                optimizedBlur.apply(filterManager, input, target, 1);
+                tintFilter.apply(filterManager, target, flip, 1);
+                filterManager.applyFilter(this, input, output, clearMode);
+            }
+        }
     }
 
-    /** The color of the shadow */
-    get color(): number
+    /**
+    set distance(value: number)
     {
-        return this._color;
-        this._tintFilter.uniforms.color = this.uniforms.color;
+        this._distance = value;
+        this.padding = Math.min(Math.max(Math.abs(Math.cos(this._angle * DEG_TO_RAD)) * value, Math.abs(Math.sin(this._angle * DEG_TO_RAD)) * value) + this.blur * 2, 32);
     }
 
-    /** The blur amount of the shadow */
-    get blur(): number
+    /**
+    set angle(value: number)
     {
-        return this._blurFilter.blur;
-        this._blurFilter.blur = value;
+        this._angle = value;
+        this.padding = Math.min(Math.max(Math.abs(Math.cos(this._angle * DEG_TO_RAD)) * this._distance, Math.abs(Math.sin(this._angle * DEG_TO_RAD)) * this._distance) + this.blur * 2, 32);
     }
 
-    /** The quality of the blur */
-    get quality(): number
+    /**
+    set blur(value: number)
     {
-        return this._blurFilter.quality;
+        this._blur = value;
+        this.padding = Math.min(Math.max(Math.abs(Math.cos(this._angle * DEG_TO_RAD)) * this._distance, Math.abs(Math.sin(this._angle * DEG_TO_RAD)) * this._distance) + this.blur * 2, 32);
+    }
 
+    /**
     set quality(value: number)
     {
-        this._blurFilter.quality = settings.PREFER_ENV === 2 ? Math.min(value, 2) : value;
+        this._quality = value;
+        this._blurFilter.quality = Math.min(value, 2);
     }
 
     /**
-        this._updatePadding();
-    }
-
-    /** The distance of the shadow from the object */
-    get distance(): number
+    set resolution(value: number)
     {
-        return this._distance;
-        this._updatePadding();
-    }
-
-    /** The angle of the shadow in degrees */
-    get angle(): number
-    {
-        return this._angle;
-        this._updatePadding();
-    }
-
-    /** The resolution of the filter */
-    get resolution(): number
-    {
-        return this._blurFilter.resolution;
-        this._blurFilter.resolution = value;
-    }
-
-    /** The pixel size of the filter */
-    get pixelSize(): number | number[] | IPointData
-    {
-        return this._blurFilter.pixelSize;
-        this._blurFilter.pixelSize = value;
-    }
-
-    /** The kernels of the blur filter */
-    get kernels(): number[]
-    {
-        return this._blurFilter.kernels;
-        this._blurFilter.kernels = value;
-    }
-
-    /** Applies the filter */
-    apply(
-        filterManager: FilterSystem,
-        input: RenderTexture,
-        clear: boolean,
-        currentState: any
-    ): void {
-        const target = filterManager.getFilterTexture(input, this.resolution);
-
-        // Apply blur to get the shadow
-        this._blurFilter.apply(
-            clear,
-            currentState
-        );
-        
-        // Apply the drop shadow effect
-        this.uniforms.scale = currentState.scale;
-        super.apply(
-            clear,
-            currentState
-        );
-        
-        filterManager.returnFilterTexture(target);
+        this._resolution = value;
+        this._blurFilter.resolution = Math.min(value, 1);
     }
 }
