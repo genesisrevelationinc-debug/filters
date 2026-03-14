@@ -1,0 +1,14 @@
+import DropShadowFilter from '@pixi/filter-drop-shadow';
+const app = new Application({ width: 800, height: 600 });
+app.stage.filters = [new DropShadowFilter(5, Math.PI / 4, 0x000000, 5, 0.5)];
+document.body.appendChild(app.view);
+sprite.anchor.set(0.5);
+sprite.x = app.screen.width / 2;
+sprite.y = app.screen.height / 2;
+sprite.filters = [new DropShadowFilter(5, Math.PI / 4, 0x000000, 5, 0.5)];
+app.stage.addChild(sprite);
+    sprite.rotation += 0.01;
+});
+const filter = new DropShadowFilter(5, Math.PI / 4, 0x000000, 5);
+filter.quality = 0.5;
+app.stage.filters = [filter];
