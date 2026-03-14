@@ -1,35 +1,26 @@
-import { Filter } from '@pixi/core';
-import { Matrix } from '@pixi/math';
-import { settings } from '@pixi/settings';
-
-/**
- * DropShadowFilter.
-    public distance: number;
-    public angle: number;
-    public shadowOnly: boolean;
-    public quality: number;
-
-    constructor(distance = 5, angle = Math.PI / 4, color = 0x000000, alpha = 0.5, blur = 2, quality = 3, resolution = settings.RESOLUTION, shadowOnly = false)
+export default class DropShadowFilter extends Filter
+{
+    private static readonly fragment = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
     {
-        const shadowMatrix = new Matrix();
-        this.distance = distance;
-        this.angle = angle;
-        this.shadowOnly = shadowOnly;
-        this.quality = quality;
+        super(DropShadowFilter.vertex, DropShadowFilter.fragment);
 
-        this.updatePadding();
-    }
-        this.updatePadding();
+        // Optimize for lower performance devices
+        this.resolution = 0.5;
+        this.padding = 10;
+
+        this.uniforms.distance = 5;
+        this.uniforms.angle = Math.PI / 4;
+        this.uniforms.color = [0.0, 0.0, 0.0, 0.5];
+    {
+        this.uniforms.distance = distance;
     }
 
-    apply(filterManager, input, output, clear): void
+    set quality(value: number)
     {
-        const resolution = filterManager.renderer.resolution;
-        const cachePadding = this.padding * resolution;
-        const quality = this.quality;
-
-        for (let i = 0; i < quality; i++)
-        {   
-            filterManager.applyFilter(this, input, tempRenderTexture, clear);
-            filterManager.applyFilter(this.blur, tempRenderTexture, input);
-            clear = true;
+        this.padding = value * 10;
+    }
+}
