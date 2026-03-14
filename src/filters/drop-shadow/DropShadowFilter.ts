@@ -1,28 +1,38 @@
-import { Filter } from '@pixi/core';
-import { Matrix } from '@pixi/math';
-import { settings } from '@pixi/settings';
-
-/**
- * DropShadowFilter.
-    public distance: number;
-    public angle: number;
-    public shadowOnly: boolean;
-    public quality: number;
-
-    constructor(distance = 5, angle = Math.PI / 4, color = 0x000000, alpha = 0.5, blur = 2, quality = 3, resolution = settings.RESOLUTION, shadowOnly = false)
+export default class DropShadowFilter extends Filter
+{
+    private _distance: number;
+    private _quality: number;
+    constructor(distance = 5, angle = Math.PI / 4, color = 0x000000, blur = 5, quality = 1)
     {
-        const shadowMatrix = new Matrix();
+        this.angle = angle;
         this.color = color;
-        this.alpha = alpha;
         this.blur = blur;
         this.quality = quality;
-        this.resolution = resolution;
-        this.shadowOnly = shadowOnly;
-
+    }
+    /**
+        this.uniforms.blur = blur;
+    }
+    get quality(): number
     {
-        this.uniforms.distance = this.distance * this.resolution;
-        this.uniforms.angle = this.angle;
-        this.uniforms.quality = Math.min(this.quality, settings.FILTER_RESOLUTION);
-        this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255];
-        this.uniforms.alpha = this.alpha;
-        this.uniforms.shadowOnly = this.shadowOnly ? 1 : 0;
+        return this._quality;
+    }
+
+    set quality(value: number)
+    {
+        this._quality = value;
+        this.updatePadding();
+    }
+
+    /**
+     * Recalculates the padding required by the filter.
+     * @private
+        const blur = Math.max(this.blur, 1);
+        const offset = this.distance * Math.max(Math.abs(Math.sin(this.angle)), Math.abs(Math.cos(this.angle)));
+        this.padding = Math.max(blur, offset) * this.quality + 1;
+    }
+    /**
+        const offset = this.distance * Math.max(Math.abs(Math.sin(this.angle)), Math.abs(Math.cos(this.angle)));
+        this.uniforms.offset = [offset * Math.cos(this.angle) / resolution, offset * Math.sin(this.angle) / resolution];
+        this.uniforms.strength = this.blur / (2 * padding * this.quality);
+    }
+}
