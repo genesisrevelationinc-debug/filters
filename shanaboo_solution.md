@@ -26,108 +26,120 @@
          this.shadowOnly = shadowOnly;
  
 @@ -47,7 +55,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
+         this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
          this.uniforms.shadowOnly = this.shadowOnly;
- 
-         // Adjust quality for better performance on Macs and iPhones
--        this.quality = Math.min(this.quality, 3);
-+        this.uniforms.quality = Math.min(this.quality, 3);
- 
-         // Update the shadow matrix
-         this.updateShadowMatrix();
-@@ -60,6 +68,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255];
-         this.uniforms.alpha = this.alpha;
-         this.uniforms.blur = this.blur;
-+        this.uniforms.quality = this.quality;
-         this.uniforms.resolution = this.resolution;
      }
  
-@@ -77,6 +86,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.distance = this.distance;
+@@ -60,7 +68,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
          this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
          this.uniforms.shadowOnly = this.shadowOnly;
-+        this.uniforms.quality = this.quality;
- 
-         // Update the shadow matrix
-         this.updateShadowMatrix();
-@@ -90,6 +100,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255];
-         this.uniforms.alpha = this.alpha;
-         this.uniforms.blur = this.blur;
-+        this.uniforms.quality = this.quality;
-         this.uniforms.resolution = this.resolution;
      }
  
-@@ -103,6 +114,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.distance = this.distance;
+@@ -73,7 +81,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
          this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
          this.uniforms.shadowOnly = this.shadowOnly;
-+        this.uniforms.quality = this.quality;
- 
-         // Update the shadow matrix
-         this.updateShadowMatrix();
-@@ -116,6 +128,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255];
-         this.uniforms.alpha = this.alpha;
-         this.uniforms.blur = this.blur;
-+        this.uniforms.quality = this.quality;
-         this.uniforms.resolution = this.resolution;
      }
  
-@@ -129,6 +142,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.distance = this.distance;
+@@ -86,7 +94,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
          this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
          this.uniforms.shadowOnly = this.shadowOnly;
-+        this.uniforms.quality = this.quality;
- 
-         // Update the shadow matrix
-         this.updateShadowMatrix();
-@@ -142,6 +156,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255];
-         this.uniforms.alpha = this.alpha;
-         this.uniforms.blur = this.blur;
-+        this.uniforms.quality = this.quality;
-         this.uniforms.resolution = this.resolution;
      }
  
-@@ -155,6 +170,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.distance = this.distance;
+@@ -99,7 +107,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
          this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
          this.uniforms.shadowOnly = this.shadowOnly;
-+        this.uniforms.quality = this.quality;
- 
-         // Update the shadow matrix
-         this.updateShadowMatrix();
-@@ -168,6 +184,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255];
-         this.uniforms.alpha = this.alpha;
-         this.uniforms.blur = this.blur;
-+        this.uniforms.quality = this.quality;
-         this.uniforms.resolution = this.resolution;
      }
  
-@@ -181,6 +198,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.distance = this.distance;
+@@ -112,7 +120,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
          this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
          this.uniforms.shadowOnly = this.shadowOnly;
-+        this.uniforms.quality = this.quality;
- 
-         // Update the shadow matrix
-         this.updateShadowMatrix();
-@@ -194,6 +212,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255];
-         this.uniforms.alpha = this.alpha;
-         this.uniforms.blur = this.blur;
-+        this.uniforms.quality = this.quality;
-         this.uniforms.resolution = this.resolution;
      }
  
-@@ -207,6 +226,7 @@ export class DropShadowFilter extends Filter
-         this.uniforms.distance = this.distance;
+@@ -125,7 +133,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
          this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
          this.uniforms.shadowOnly = this.shadowOnly;
-+        this.uniforms.quality = this.quality;
+     }
  
-         // Update the shadow matrix
-         this.updateShadowMatrix();
-@@ -220,6 +240,7
+@@ -138,7 +146,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
+         this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
+         this.uniforms.shadowOnly = this.shadowOnly;
+     }
+ 
+@@ -151,7 +159,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
+         this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
+         this.uniforms.shadowOnly = this.shadowOnly;
+     }
+ 
+@@ -164,7 +172,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
+         this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
+         this.uniforms.shadowOnly = this.shadowOnly;
+     }
+ 
+@@ -177,7 +185,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
+         this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
+         this.uniforms.shadowOnly = this.shadowOnly;
+     }
+ 
+@@ -190,7 +198,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
+         this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
+         this.uniforms.shadowOnly = this.shadowOnly;
+     }
+ 
+@@ -203,7 +211,7 @@ export class DropShadowFilter extends Filter
+     {
+         this.uniforms.distance = this.distance * this.resolution;
+         this.uniforms.angle = this.angle;
+-        this.uniforms.strength = this.alpha / (this.blur * 2);
++        this.uniforms.strength = this.alpha / (this.blur * this.quality);
+         this.uniforms.shadowOnly = this.shadowOnly;
+     }
+ 
+@@ -216,7 +224,7 @@ export class DropShadowFilter extends Filter
