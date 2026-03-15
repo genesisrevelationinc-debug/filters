@@ -1,12 +1,12 @@
-export default class DropShadowFilter extends Filter
+export class DropShadowFilter extends Filter
 {
-    private static readonly fragment = `
+    private static readonly DEFAULT_FRAGMENT = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
 precision mediump float;
     {
-        super(DropShadowFilter.vertex, DropShadowFilter.fragment);
+        super(null, DropShadowFilter.DEFAULT_FRAGMENT, { mapSampler: 0 });
 
         // Optimize for lower performance devices
         this.resolution = 0.5;
@@ -15,12 +15,3 @@ precision mediump float;
         this.uniforms.distance = 5;
         this.uniforms.angle = Math.PI / 4;
         this.uniforms.color = [0.0, 0.0, 0.0, 0.5];
-    {
-        this.uniforms.distance = distance;
-    }
-
-    set quality(value: number)
-    {
-        this.padding = value * 10;
-    }
-}
