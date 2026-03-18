@@ -1,5 +1,5 @@
-import { Filter, Sprite } from '@pixi/core';
-import { Point } from '@pixi/math';
+import { Filter } from '@pixi/core';
+import { Matrix } from '@pixi/math';
 import { settings } from '@pixi/settings';
 
 /**
@@ -9,20 +9,27 @@ import { settings } from '@pixi/settings';
     public shadowOnly: boolean;
     public quality: number;
 
-    constructor(distance = 5, angle = Math.PI / 4, color = 0x000000, alpha = 0.5, blur = 2, quality = 1, resolution = settings.RESOLUTION, shadowOnly = false)
+    constructor(distance = 5, angle = Math.PI / 4, color = 0x000000, alpha = 0.5, blur = 2, quality = 3, resolution = settings.RESOLUTION, shadowOnly = false)
     {
-        super();
-        this.angle = angle;
+        const shadowMatrix = new Matrix();
         this.color = color;
         this.alpha = alpha;
-        this.quality = quality;
         this.blur = blur;
+        this.quality = quality;
         this.resolution = resolution;
         this.shadowOnly = shadowOnly;
+
+    {
         this.uniforms.distance = this.distance * this.resolution;
-        this.uniforms.angle = this.angle;
-        this.uniforms.color = this.color;
-        this.uniforms.quality = this.quality;
-        this.uniforms.alpha = this.alpha;
-        this.uniforms.shadowOnly = this.shadowOnly;
+        this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255, this.alpha];
+        this.blurFilter.blur = this.blur * this.resolution / this.quality;
     }
+
+    /**
+    {
+        this.blurFilter.resolution = this.resolution;
+        this.blurFilter.apply(filterManager, input, output, clear);
+        for (let i = 0; i < Math.max(1, Math.min(5, this.quality)); i++)
+        {
+            filterManager.applyFilter(this, input, output, clear);
+        }
