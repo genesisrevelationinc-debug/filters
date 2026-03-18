@@ -1,35 +1,17 @@
-import { Filter } from '@pixi/core';
-import { Matrix } from '@pixi/math';
-import { settings } from '@pixi/settings';
-
-/**
- * DropShadowFilter.
-    public distance: number;
-    public angle: number;
-    public shadowOnly: boolean;
-    public quality: number;
-
-    constructor(distance = 5, angle = Math.PI / 4, color = 0x000000, alpha = 0.5, blur = 2, quality = 3, resolution = settings.RESOLUTION, shadowOnly = false)
+export class DropShadowFilter extends Filter
+{
+    private static readonly DEFAULT_FRAGMENT = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
     {
-        const shadowMatrix = new Matrix();
-        this.color = color;
-        this.alpha = alpha;
-        this.blur = blur;
-        this.quality = quality;
-        this.resolution = resolution;
-        this.shadowOnly = shadowOnly;
+        super(null, DropShadowFilter.DEFAULT_FRAGMENT, { mapSampler: 0 });
 
-    {
-        this.uniforms.distance = this.distance * this.resolution;
-        this.uniforms.color = [(this.color >> 16 & 0xFF) / 255, (this.color >> 8 & 0xFF) / 255, (this.color & 0xFF) / 255, this.alpha];
-        this.blurFilter.blur = this.blur * this.resolution / this.quality;
-    }
+        // Optimize for lower performance devices
+        this.resolution = 0.5;
+        this.padding = 10;
 
-    /**
-    {
-        this.blurFilter.resolution = this.resolution;
-        this.blurFilter.apply(filterManager, input, output, clear);
-        for (let i = 0; i < Math.max(1, Math.min(5, this.quality)); i++)
-        {
-            filterManager.applyFilter(this, input, output, clear);
-        }
+        this.uniforms.distance = 5;
+        this.uniforms.angle = Math.PI / 4;
+        this.uniforms.color = [0.0, 0.0, 0.0, 0.5];
