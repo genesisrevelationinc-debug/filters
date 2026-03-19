@@ -1,13 +1,11 @@
 precision mediump float;
 
-uniform float quality;
-uniform vec4 color;
-uniform float alpha;
-uniform float distance;
-{
-    vec4 original = texture2D(uSampler, vTextureCoord);
-    vec4 shadow = vec4(0.0);
-    float numSamples = quality;
-    float blur = blurSize / numSamples * 0.5;
+varying vec2 vTextureCoord;
 
-    for(float x = -numSamples; x <= numSamples; x += 1.0)
+    vec4 color = texture2D(uSampler, vTextureCoord);
+    if (color.a == 0.0) discard;
+
+    float quality = floor(uQuality);
+    float dist = uDistance;
+    float angle = uAngle;
+    vec2 offset = vec2(cos(angle), sin(angle)) * dist;
